@@ -1,0 +1,120 @@
+.jerry-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 2rem 0;
+  height: 250px;
+}
+
+.jerry-avatar {
+  position: relative;
+  width: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: bottom center;
+  transition: transform 0.3s ease;
+}
+
+.jerry-avatar.speaking {
+  animation: slight-bob 2s infinite alternate;
+}
+
+@keyframes slight-bob {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-5px); }
+}
+
+.jerry-head {
+  width: 100px;
+  height: 120px;
+  background-color: #fca5a5; /* Skin tone */
+  border-radius: 40% 40% 50% 50%;
+  position: relative;
+  z-index: 2;
+  box-shadow: inset -5px -5px 15px rgba(0,0,0,0.1);
+}
+
+.jerry-hair {
+  width: 110px;
+  height: 40px;
+  background-color: #1e293b;
+  position: absolute;
+  top: -10px;
+  left: -5px;
+  border-radius: 50% 50% 10% 10%;
+}
+
+.jerry-eyes {
+  display: flex;
+  justify-content: space-between;
+  width: 50px;
+  position: absolute;
+  top: 50px;
+  left: 25px;
+}
+
+.eye {
+  width: 12px;
+  height: 12px;
+  background-color: #0f172a;
+  border-radius: 50%;
+  animation: blink 4s infinite;
+}
+
+@keyframes blink {
+  0%, 96%, 98% { transform: scaleY(1); }
+  97% { transform: scaleY(0.1); }
+}
+
+.jerry-mouth {
+  width: 30px;
+  height: 6px;
+  background-color: #7f1d1d;
+  position: absolute;
+  bottom: 25px;
+  left: 35px;
+  border-radius: 10px;
+  transition: all 0.1s;
+}
+
+.animate-mouth {
+  animation: talk 0.3s infinite alternate;
+}
+
+@keyframes talk {
+  0% { height: 6px; border-radius: 10px; transform: translateY(0); }
+  100% { height: 20px; border-radius: 15px; transform: translateY(5px); }
+}
+
+.jerry-body {
+  width: 140px;
+  height: 100px;
+  background-color: #334155; /* Suit color */
+  border-radius: 40% 40% 0 0;
+  position: relative;
+  margin-top: -10px;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.jerry-body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 40px;
+  height: 60px;
+  background-color: #fff; /* Shirt */
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+.tie {
+  position: absolute;
+  top: 15px;
+  width: 12px;
+  height: 60px;
+  background-color: #ef4444; /* Red tie */
+  clip-path: polygon(20% 0, 80% 0, 100% 100%, 50% 120%, 0 100%);
+}
