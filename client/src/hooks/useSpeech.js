@@ -4,39 +4,89 @@ export function useSpeech(onResult) {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef(null);
+  const silenceTimerRef = useRef(null);
+  const fullTranscriptRef = useRef('');
+
+  const onResultRef = useRef(onResult);
+
+  useEffect(() => {
+    onResultRef.current = onResult;
+  }, [onResult]);
 
   useEffect(() => {
     // Check browser support
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'en-US';
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
 
-      recognitionRef.current.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        if (onResult) onResult(transcript);
+      recognition.onstart = () => {
+        setIsListening(true);
       };
 
-      recognitionRef.current.onerror = (event) => {
+      recognition.onresult = (event) => {
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + ' ';
+          }
+        }
+        
+        if (finalTranscript) {
+          fullTranscriptRef.current += finalTranscript;
+        }
+
+        // Reset silence timer on any speech detection (interim or final)
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = setTimeout(() => {
+           stopListening();
+        }, 5000);
+      };
+
+      recognition.onerror = (event) => {
         console.error('Speech recognition error', event.error);
         setIsListening(false);
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       };
 
-      recognitionRef.current.onend = () => {
+      recognition.onend = () => {
         setIsListening(false);
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        if (fullTranscriptRef.current.trim() && onResultRef.current) {
+          onResultRef.current(fullTranscriptRef.current.trim());
+        }
       };
+
+      recognitionRef.current = recognition;
     } else {
       console.warn("Speech Recognition API not supported in this browser.");
     }
-  }, [onResult]);
+
+    return () => {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // Ignore already stopped
+        }
+      }
+    };
+  }, []);
 
   const startListening = () => {
-    if (recognitionRef.current && !isListening) {
+    if (recognitionRef.current) {
       try {
+        fullTranscriptRef.current = ''; // Reset transcript on new start
         recognitionRef.current.start();
-        setIsListening(true);
+        
+        // Start initial silence timer
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = setTimeout(() => {
+           stopListening();
+        }, 5000);
       } catch (err) {
         console.error("Could not start recognition:", err);
       }
@@ -44,9 +94,13 @@ export function useSpeech(onResult) {
   };
 
   const stopListening = () => {
-    if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.error("Could not stop recognition:", e);
+      }
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     }
   };
 

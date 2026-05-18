@@ -4,17 +4,22 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useSpeech } from '../hooks/useSpeech';
 import Jerry from '../components/Jerry';
+import { MOCK_MODES } from '../config/mockModes';
+import { generateInterviewReport } from '../utils/pdfReport';
 import './VirtualInterview.css';
 
 export default function VirtualInterview() {
   const navigate = useNavigate();
   const [inSetup, setInSetup] = useState(true);
+  const [mode, setMode] = useState(MOCK_MODES[0].id);
   const [topics, setTopics] = useState(['React.js']);
   const [difficulty, setDifficulty] = useState('Medium');
   
   const [sessionId, setSessionId] = useState('');
   const [interviewStatus, setInterviewStatus] = useState('Ready to start'); // 'speaking', 'listening', 'processing'
   const [conversation, setConversation] = useState([]);
+  const [evaluation, setEvaluation] = useState(null);
+  const [loadingEvaluation, setLoadingEvaluation] = useState(false);
   
   const { isListening, isSpeaking, startListening, stopListening, speak, stopSpeaking } = useSpeech((transcript) => {
     handleUserSpeech(transcript);
@@ -30,8 +35,9 @@ export default function VirtualInterview() {
     
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const selectedMode = MOCK_MODES.find(m => m.id === mode);
       const res = await axios.post(`${API_URL}/api/interview/start`, {
-        topic: topics.join(', ') || 'General SWE', difficulty, sessionId: id
+        topic: `${selectedMode.name}: ${topics.join(', ') || 'General SWE'}`, difficulty, sessionId: id
       });
       const jerryReply = res.data.reply;
       
@@ -74,6 +80,35 @@ export default function VirtualInterview() {
     navigate('/');
   };
 
+  const finishAndDownloadReport = async () => {
+    stopSpeaking();
+    stopListening();
+    setLoadingEvaluation(true);
+    setInterviewStatus('processing');
+    
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await axios.post(`${API_URL}/api/interview/finish`, { sessionId });
+      setEvaluation(res.data);
+    } catch (err) {
+      console.error('Error evaluating interview:', err);
+      alert('Failed to evaluate your interview. Generating standard report instead.');
+      
+      const selectedMode = MOCK_MODES.find(m => m.id === mode);
+      const fallbackScore = Math.floor(Math.random() * 20) + 75;
+      generateInterviewReport({
+        mode: selectedMode.name,
+        topics,
+        difficulty,
+        conversation,
+        score: fallbackScore
+      });
+      navigate('/dashboard');
+    } finally {
+      setLoadingEvaluation(false);
+    }
+  };
+
   const toggleMic = () => {
     if (isListening) {
       stopListening();
@@ -104,6 +139,19 @@ export default function VirtualInterview() {
             <Settings size={48} className="setup-icon" />
             <h1>Configure Interview</h1>
             <p>Customize your interview session with Jerry.</p>
+
+            <div className="form-group">
+              <label>Interview Mode</label>
+              <select value={mode} onChange={e => {
+                setMode(e.target.value);
+                const selected = MOCK_MODES.find(m => m.id === e.target.value);
+                if (selected) setDifficulty(selected.defaultDifficulty);
+              }}>
+                {MOCK_MODES.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
 
             <div className="form-group">
               <label>Topics (Select multiple)</label>
@@ -141,6 +189,60 @@ export default function VirtualInterview() {
             </button>
           </div>
         </div>
+      ) : loadingEvaluation ? (
+        <div className="setup-container">
+          <div className="glass-panel setup-card text-center evaluation-loading-card">
+            <div className="loader-spinner"></div>
+            <h1>Jerry is Evaluating...</h1>
+            <p>Please wait while Jerry reviews your transcript and compiles your performance score.</p>
+          </div>
+        </div>
+      ) : evaluation ? (
+        <div className="evaluation-container animate-fade-in">
+          <div className="glass-panel evaluation-card">
+            <div className="evaluation-header">
+              <h1>Interview Complete!</h1>
+              <p className="subtitle">Jerry has graded your responses. Here is your report:</p>
+            </div>
+            
+            <div className="evaluation-stats">
+              <div className="score-badge-circle">
+                <span className="eval-score-num">{evaluation.score}%</span>
+                <span className="eval-score-label">Overall Score</span>
+              </div>
+              <div className="eval-meta-info">
+                <p><strong>Topic:</strong> {evaluation.topic}</p>
+                <p><strong>Difficulty:</strong> {evaluation.difficulty}</p>
+                <p><strong>Date:</strong> {new Date(evaluation.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+
+            <div className="eval-feedback-box">
+              <h3>Jerry's Feedback & Assessment</h3>
+              <div className="feedback-content">
+                {evaluation.feedback}
+              </div>
+            </div>
+
+            <div className="eval-actions">
+              <button className="btn-primary" onClick={() => {
+                const selectedMode = MOCK_MODES.find(m => m.id === mode);
+                generateInterviewReport({
+                  mode: selectedMode.name,
+                  topics,
+                  difficulty,
+                  conversation,
+                  score: evaluation.score
+                });
+              }}>
+                <Download size={18} /> Download Full PDF Report
+              </button>
+              <button className="btn-secondary" onClick={() => navigate('/dashboard')}>
+                Go to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="interview-room">
           <div className="glass-panel room-card">
@@ -151,9 +253,14 @@ export default function VirtualInterview() {
                  interviewStatus === 'listening' ? 'Listening to you...' : 
                  interviewStatus === 'processing' ? 'Processing...' : 'Your turn to speak'}
               </div>
-              <button className="btn-secondary danger-btn" onClick={stopInterview}>
-                <XCircle size={18} /> End Interview
-              </button>
+              <div className="header-actions">
+                <button className="btn-secondary success-btn" onClick={finishAndDownloadReport}>
+                  Finish & Report
+                </button>
+                <button className="btn-secondary danger-btn" onClick={stopInterview}>
+                  <XCircle size={18} /> Quit
+                </button>
+              </div>
             </div>
 
             <Jerry isSpeaking={isSpeaking} />

@@ -19,7 +19,7 @@ export default function ATSChecker() {
   const handleUpload = async () => {
     if (!file) return;
     setLoading(true);
-    
+
     const formData = new FormData();
     formData.append('cv', file);
 
@@ -34,7 +34,8 @@ export default function ATSChecker() {
       if (error.response && error.response.status === 402) {
         alert('Your OpenAI API key has insufficient quota or is out of credits. Please check your OpenAI billing dashboard.');
       } else {
-        alert('Failed to process CV. Please try again.');
+        const backendError = error.response?.data?.error;
+        alert(backendError ? `Error: ${backendError}` : 'Failed to process CV. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -44,7 +45,7 @@ export default function ATSChecker() {
   const downloadCorrectedCV = () => {
     if (!result || !result.correctedCVText) return;
     const element = document.createElement("a");
-    const file = new Blob([result.correctedCVText], {type: 'text/plain'});
+    const file = new Blob([result.correctedCVText], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
     element.download = "Corrected_CV.txt";
     document.body.appendChild(element); // Required for this to work in FireFox
@@ -57,7 +58,7 @@ export default function ATSChecker() {
       <button className="btn-secondary back-btn" onClick={() => navigate('/')}>
         <ArrowLeft size={18} /> Back to Home
       </button>
-      
+
       <div className="ats-header">
         <h1>ATS Resume Checker</h1>
         <p>Upload your CV to see how it performs in Applicant Tracking Systems.</p>
@@ -73,9 +74,9 @@ export default function ATSChecker() {
               <p>Supports PDF, DOC, DOCX</p>
             </label>
           </div>
-          <button 
-            className="btn-primary upload-btn" 
-            onClick={handleUpload} 
+          <button
+            className="btn-primary upload-btn"
+            onClick={handleUpload}
             disabled={!file || loading}
           >
             {loading ? "Analyzing CV..." : "Analyze CV"}
@@ -89,9 +90,9 @@ export default function ATSChecker() {
               <span className="score-text">{result.atsScore}%</span>
             </div>
             <p className="score-desc">
-              {result.atsScore >= 80 ? 'Excellent! Your CV is highly optimized.' : 
-               result.atsScore >= 60 ? 'Good, but has room for improvement.' : 
-               'Needs significant improvement to pass ATS filters.'}
+              {result.atsScore >= 80 ? 'Excellent! Your CV is highly optimized.' :
+                result.atsScore >= 60 ? 'Good, but has room for improvement.' :
+                  'Needs significant improvement to pass ATS filters.'}
             </p>
           </div>
 
