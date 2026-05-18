@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Mic, MicOff, Settings, XCircle } from 'lucide-react';
+import { ArrowLeft, Mic, MicOff, Settings, XCircle, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useSpeech } from '../hooks/useSpeech';
