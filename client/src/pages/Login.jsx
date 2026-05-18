@@ -27,8 +27,8 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
-    // Vite proxy will forward this to the backend
-    window.location.href = `/api/auth/google`;
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    window.location.href = `${API_URL}/api/auth/google`;
   };
 
   return (
