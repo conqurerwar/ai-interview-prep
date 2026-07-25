@@ -26,10 +26,7 @@ export default function Login() {
     }
   };
 
-  const handleGoogleLogin = () => {
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    window.location.href = `${API_URL}/api/auth/google`;
-  };
+
 
   return (
     <div className="auth-container animate-fade-in">
@@ -92,14 +89,7 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="auth-divider">
-          <span>OR</span>
-        </div>
 
-        <button onClick={handleGoogleLogin} className="google-btn">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" />
-          Continue with Google
-        </button>
 
         <p className="auth-toggle">
           {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
